@@ -479,3 +479,41 @@ def test_escape_covers_spaces_and_code_fences(rt):
     out = Commands(rt).handle("diff mcp__files__read_file")
     assert "\\u{00a0}" in out and "\\u{2028}" in out and "\\u{3164}" in out
     assert out.count("```") == 2  # only the reply's own fence
+
+
+def test_owner_ids_may_approve_from_a_direct_chat_only(rt):
+    rt.sync()
+    rt.srv.set("mcp__files__read_file", desc=POISON)
+    cmds = Commands(rt)
+
+    class Src:
+        platform = "telegram"
+        user_id = "777"
+        chat_type = "group"
+
+    rt.cfg["owner_ids"] = ["Telegram:777"]
+    assert approve(cmds, rt, "all", source=Src()).startswith("Only the owner")  # group chat: refused
+    Src.user_id = "778"
+    Src.chat_type = "dm"
+    assert approve(cmds, rt, "all", source=Src()).startswith("Only the owner")  # not listed
+    assert rt.pre_tool_call("mcp__files__read_file", {})["action"] == "block"
+    Src.user_id = "777"
+    assert "Approved" in approve(cmds, rt, "files", source=Src())
+    assert rt.store.snapshot()["tools"]["mcp__files__read_file"]["approved_by"] == "telegram:777"
+
+
+def test_new_tools_pin_trusts_a_new_tool_on_a_pinned_server(rt):
+    # The setting a host uses for servers like Composio whose toolkits grow over time.
+    rt.sync()
+    rt.srv.set("mcp__files__write_file", desc="Write a file.")
+    assert rt.pre_tool_call("mcp__files__write_file", {})["action"] == "block"  # default: hold
+    rt.cfg["new_tools"] = "pin"
+    rt.srv.set("mcp__files__stat", desc="Stat a file.")
+    assert rt.pre_tool_call("mcp__files__stat", {}) is None
+    rt.srv.set("mcp__files__stat", desc=POISON)  # a later change is still held
+    assert rt.pre_tool_call("mcp__files__stat", {})["action"] == "block"
+
+
+def test_refusal_does_not_name_the_host():
+    from mcp_pin.commands import OWNER_ONLY
+    assert "hermes" not in OWNER_ONLY.lower() and "owner_ids" in OWNER_ONLY

@@ -317,11 +317,17 @@ class Runtime:
                       self._env("HERMES_SESSION_USER_ID"), self._env("HERMES_SESSION_CHAT_TYPE"), cron)
 
     def may_approve(self, who: Caller) -> bool:
-        """Local sessions, and senders Hermes itself lists as admins for this kind of chat."""
+        """Local sessions, a direct chat from an identity in the ``owner_ids`` setting, and senders
+        Hermes itself lists as admins for this kind of chat."""
         if who.local:
             return True
         if not who.user_id:
             return False
+        if who.chat_type in DM_CHAT_TYPES and who.platform:
+            owners = {f"{p.strip().lower()}:{u.strip()}"
+                      for p, _, u in (i.partition(":") for i in _id_set(self._get("owner_ids", [])))}
+            if f"{who.platform}:{who.user_id}" in owners:
+                return True
         try:
             admins = self._gateway_admins() or {}
         except Exception as exc:

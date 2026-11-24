@@ -25,6 +25,11 @@ config_schema:
     default: hold
     label: "New tools on a pinned server"
     description: "A tool that appears later on a server you already pinned. 'hold' (default) waits for your approval; 'pin' trusts it on first sight."
+  owner_ids:
+    type: list
+    default: []
+    label: "Owner chat identities"
+    description: "'platform:user_id' identities (for example 'telegram:123456') that may review and approve from a direct chat, in addition to local sessions and the gateway's allow_admin_from. Group chats are never accepted through this list."
   store_id:
     type: str
     default: ""

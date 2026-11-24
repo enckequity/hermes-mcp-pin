@@ -58,10 +58,12 @@ plugins:
       settings:
         new_servers: pin   # pin a new server's tools on first sight ("hold" = wait for /mcppin approve)
         new_tools: hold    # a tool that appears later on a pinned server waits for approval ("pin" = trust it)
+        owner_ids: []      # "platform:user_id" identities that may approve from a direct chat
 ```
 
 **Who may approve, forget or reset:** local sessions on this machine (CLI, TUI, Desktop, ACP; the
-classic CLI runs plugin commands through the local gateway, which counts as local), and senders Hermes already lists as admins: `allow_admin_from` in DMs, `group_allow_admin_from` in group
+classic CLI runs plugin commands through the local gateway, which counts as local), identities in
+`owner_ids` writing from a direct chat (never a group chat), and senders Hermes already lists as admins: `allow_admin_from` in DMs, `group_allow_admin_from` in group
 chats (the same scope rule Hermes uses for slash commands). Anyone may run `/mcppin` and `/mcppin diff`.
 
 ## How it works
