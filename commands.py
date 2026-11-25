@@ -16,8 +16,9 @@ USAGE = (
     "  /mcppin forget <tool|server|all>     drop pins; those tools are held again on next use (owner)\n"
     "  /mcppin reset confirm                start over as on a first run (owner)"
 )
-OWNER_ONLY = ("Only the owner can do that: run it from a local session (CLI, TUI, Desktop), or be listed in "
-              "Hermes's allow_admin_from (group_allow_admin_from in group chats).")
+OWNER_ONLY = ("Only the owner can do that: run it from a local session (CLI, TUI, Desktop), from a direct chat "
+              "with an identity listed in mcp-pin's owner_ids, or as a sender listed in the gateway's "
+              "allow_admin_from (group_allow_admin_from in group chats).")
 
 
 def _ago(ts: Any) -> str:
@@ -99,7 +100,7 @@ class Commands:
         if counts:
             lines.append("Pinned: " + ", ".join(f"{s} ({n} tool{'s' if n != 1 else ''})" for s, n in sorted(counts.items())))
         if not lines:
-            lines.append("No MCP tools seen yet. Tools are pinned the first time Hermes registers them.")
+            lines.append("No MCP tools seen yet. Tools are pinned the first time they are registered.")
         return "\n".join(lines)
 
     def _diff(self, selector: str, page: int) -> str:
