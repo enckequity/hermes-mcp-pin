@@ -58,6 +58,7 @@ plugins:
       settings:
         new_servers: pin   # pin a new server's tools on first sight ("hold" = wait for /mcppin approve)
         new_tools: hold    # a tool that appears later on a pinned server waits for approval ("pin" = trust it)
+        trusted_servers: []  # servers you release yourself: a changed definition is re-pinned, not held
         owner_ids: []      # "platform:user_id" identities that may approve from a direct chat
 ```
 

@@ -301,8 +301,10 @@ class PinStore:
 
     # -- the core ------------------------------------------------------------------------------
 
-    def _evaluate(self, data: dict, defs: list[McpDef], new_servers: str, new_tools: str):
-        """Pure: (held {name: approved description or None}, mutations to apply)."""
+    def _evaluate(self, data: dict, defs: list[McpDef], new_servers: str, new_tools: str,
+                  trusted: frozenset[str] = frozenset()):
+        """Pure: (held {name: approved description or None}, mutations to apply). A changed definition on a
+        server in *trusted* (a server the owner ships and releases themselves) is re-pinned, not held."""
         tools, pending = data["tools"], data["pending"]
         forgotten = set(data.get("forgotten") or [])
         known_servers = {p.get("server") or server_of(n) for n, p in tools.items()}
@@ -317,6 +319,10 @@ class PinStore:
                 if pin["hash"] == h:
                     if d.name in pending and pending[d.name].get("hash") == h:
                         cleared.append(d.name)  # approved elsewhere, or the server reverted
+                    continue
+                if d.server in trusted:
+                    pins[d.name] = {"hash": h, "server": d.server, "description": d.description,
+                                    "parameters": d.parameters, "approved_by": "trusted server"}
                     continue
                 held[d.name] = pin.get("description") or ""
                 if pending.get(d.name, {}).get("hash") != h:
@@ -334,16 +340,17 @@ class PinStore:
                                    "description": d.description, "parameters": d.parameters}
         return held, pins, records, cleared
 
-    def observe(self, defs: list[McpDef], *, new_servers: str = "pin", new_tools: str = "hold"):
+    def observe(self, defs: list[McpDef], *, new_servers: str = "pin", new_tools: str = "hold",
+                trusted: frozenset[str] = frozenset()):
         """Check the current definitions. Returns ``(held, events)``: held maps each held tool to its
         approved description (None for a tool never approved)."""
         with self._lock:
             self._load()
-            held, pins, records, cleared = self._evaluate(self._data, defs, new_servers, new_tools)
+            held, pins, records, cleared = self._evaluate(self._data, defs, new_servers, new_tools, trusted)
             if not (pins or records or cleared):
                 return held, []
             with self._writing() as data:  # re-evaluate on fresh data under the lock
-                held, pins, records, cleared = self._evaluate(data, defs, new_servers, new_tools)
+                held, pins, records, cleared = self._evaluate(data, defs, new_servers, new_tools, trusted)
                 now = int(self._clock())
                 for n, p in pins.items():
                     data["tools"][n] = {**p, "pinned_at": now}

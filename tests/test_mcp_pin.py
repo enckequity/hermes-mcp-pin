@@ -517,3 +517,16 @@ def test_new_tools_pin_trusts_a_new_tool_on_a_pinned_server(rt):
 def test_refusal_does_not_name_the_host():
     from mcp_pin.commands import OWNER_ONLY
     assert "hermes" not in OWNER_ONLY.lower() and "owner_ids" in OWNER_ONLY
+
+
+def test_trusted_server_repins_a_changed_definition_but_holds_new_tools_and_other_servers(rt):
+    rt.srv.set("mcp__crm__lookup", desc="Look up a contact.", server="crm")
+    rt.sync()
+    rt.cfg["trusted_servers"] = ["mcp-crm"]
+    rt.srv.set("mcp__crm__lookup", desc="Look up a contact, now with a limit.", server="crm")  # our own release
+    assert rt.pre_tool_call("mcp__crm__lookup", {}) is None
+    assert rt.store.snapshot()["tools"]["mcp__crm__lookup"]["approved_by"] == "trusted server"
+    rt.srv.set("mcp__crm__delete", desc="Delete a contact.", server="crm")  # new tools still follow new_tools
+    assert rt.pre_tool_call("mcp__crm__delete", {})["action"] == "block"
+    rt.srv.set("mcp__files__read_file", desc=POISON)  # an unlisted server still holds a change
+    assert rt.pre_tool_call("mcp__files__read_file", {})["action"] == "block"

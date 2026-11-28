@@ -25,6 +25,11 @@ config_schema:
     default: hold
     label: "New tools on a pinned server"
     description: "A tool that appears later on a server you already pinned. 'hold' (default) waits for your approval; 'pin' trusts it on first sight."
+  trusted_servers:
+    type: list
+    default: []
+    label: "Servers you ship yourself"
+    description: "MCP servers whose changed definitions are re-pinned instead of held, because you release them yourself. New tools on them still follow 'new_tools'; every other server still holds a change until you approve it."
   owner_ids:
     type: list
     default: []
