@@ -11,9 +11,6 @@ tags: [security, mcp, supply-chain, tool-poisoning]
 provides_tools: []
 provides_hooks:
   - pre_tool_call
-provides_middleware:
-  - llm_request
-  - tool_execution
 config_schema:
   new_servers:
     type: str
