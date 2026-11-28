@@ -172,12 +172,12 @@ class Runtime:
         """Servers whose changed definitions are re-pinned (the owner ships them); names are matched the
         way /mcppin selectors are (``crm``, ``mcp-crm``, ``mcp__crm``)."""
         out = set()
-        for item in _id_set(self._get("trusted_servers", [])):
-            s = str(item).strip().lower()
+        for item in _id_set(self._get("trusted_servers", [])):  # case-sensitive, like server names
+            names = {item}
             for prefix in (MCP_PREFIX, "mcp-"):
-                if s.startswith(prefix):
-                    s = s[len(prefix):]
-            if s:
+                if item.startswith(prefix) and len(item) > len(prefix):
+                    names.add(item[len(prefix):])
+            for s in names:
                 out |= {s, s.replace("-", "_"), s.replace("_", "-")}
         return frozenset(out)
 
