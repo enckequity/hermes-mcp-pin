@@ -19,7 +19,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from .pins import EMPTY_PARAMS, HELD_NOTE, NEW_NOTE, McpDef, PinStore, StoreError, is_mcp_tool, iter_tool_defs
+from .pins import EMPTY_PARAMS, HELD_NOTE, MCP_PREFIX, NEW_NOTE, McpDef, PinStore, StoreError, is_mcp_tool, iter_tool_defs
 
 logger = logging.getLogger("hermes.plugins.mcp_pin")
 
@@ -168,6 +168,19 @@ class Runtime:
         value = str(self._get(key, default) or default).strip().lower()
         return value if value in _POLICIES else default
 
+    def _trusted_servers(self) -> frozenset[str]:
+        """Servers whose changed definitions are re-pinned (the owner ships them); names are matched the
+        way /mcppin selectors are (``crm``, ``mcp-crm``, ``mcp__crm``)."""
+        out = set()
+        for item in _id_set(self._get("trusted_servers", [])):  # case-sensitive, like server names
+            names = {item}
+            for prefix in (MCP_PREFIX, "mcp-"):
+                if item.startswith(prefix) and len(item) > len(prefix):
+                    names.add(item[len(prefix):])
+            for s in names:
+                out |= {s, s.replace("-", "_"), s.replace("_", "-")}
+        return frozenset(out)
+
     def sync(self) -> tuple[dict[str, str | None], str]:
         """Check the registry's MCP definitions against the pins. Returns ``(held, degraded)`` as
         local values (never read back from shared state, so a concurrent success cannot mask this
@@ -177,7 +190,8 @@ class Runtime:
             defs = self._mcp_defs()
             self._mcp_names = frozenset(d.name for d in defs) | self._mcp_names
             held, events = self.store.observe(defs, new_servers=self._policy("new_servers", "pin"),
-                                              new_tools=self._policy("new_tools", "hold"))
+                                              new_tools=self._policy("new_tools", "hold"),
+                                              trusted=self._trusted_servers())
         except Exception as exc:
             reason = str(exc) if isinstance(exc, StoreError) else f"the pin check failed ({type(exc).__name__})"
             if reason != self.degraded:
